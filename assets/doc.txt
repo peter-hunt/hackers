@@ -1,0 +1,16 @@
+> clear
+    Clear the terminal
+
+> exit
+    Exit the session
+
+> help
+    Show this help message
+
+> help <command>
+    Show help for a specific command
+
+> read <story>
+    Read a specific story of the game.
+    Stories available:
+      intro
