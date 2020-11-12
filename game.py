@@ -1,34 +1,20 @@
 from collections import defaultdict
 from time import sleep, time
-from os import name, system
 from os.path import join
 from re import sub
 
-
-def clear():
-    if name == 'nt':
-        system('cls')
-    else:
-        system('clear')
-
-
-def warn(*args, sep=' ', end='\n'):
-    content = sep.join(f'{arg}' for arg in args)
-    print(f'\x1b[91m{content}{end}\x1b[0m')
-
-
-def acknow(*args, sep=' ', end='\n'):
-    content = sep.join(f'{arg}' for arg in args)
-    print(f'\x1b[96m{content}{end}\x1b[0m')
+from __init__ import __version__
+from func import clear, error, warn, acknow
 
 
 class Game:
-    def __init__(self, assets='assets'):
+    def __init__(self, playername, assets='assets'):
+        # load the assets
         self.assets = assets
         self.story = {}
         self.load_story('intro')
 
-        with open(join(self.assets, f'doc.txt')) as file:
+        with open(join(self.assets, 'doc', 'game.txt')) as file:
             doc = file.read()
 
         docs = sorted(doc.split('\n\n'),
@@ -45,13 +31,21 @@ class Game:
         for cmd in cmd_doc:
             self.cmd_doc[cmd] = '\n\n'.join(cmd_doc[cmd])
 
+        # initiate the game
+        self.playername = playername
+
+        self.save()
+
+    def save(self):
+        pass
+
     def load_story(self, name):
         with open(join(self.assets, 'story', f'{name}.txt')) as file:
             self.story[name] = file.read()
 
     def inform(self, name):
         if name not in self.story:
-            warn(f'Unknown story: "{name}"')
+            error(f'Unknown story: "{name}"')
             return
 
         print(f'===== {name.capitalize()} =====')
@@ -78,20 +72,23 @@ class Game:
     def acknow(self, command=''):
         if command == '':
             acknow('Help on commands:')
-            acknow(self.doc)
+            acknow(f'{self.doc}\n')
         else:
             if command in self.cmd_doc:
                 acknow(f'Help on command "{command}":')
-                acknow(self.cmd_doc[command])
+                acknow(f'{self.cmd_doc[command]}\n')
             else:
-                warn(f'Unknown command: "{command}"')
+                error(f'Unknown command: "{command}"')
 
     def _loop(self):
+        acknow(f'Hackers {__version__}')
+        acknow('Type "help" for more information.')
+
         while True:
             command = input('> \x1b[1m')
             print(end='\x1b[0m')
 
-            command = sub(r'\s+', command.strip(), r' ')
+            command = sub(r'\s+', command, r' ').strip()
 
             if command == 'exit':
                 break
@@ -103,7 +100,7 @@ class Game:
                 self.acknow()
 
             elif command == 'read':
-                warn('Command "read" expected at least 1 argument, got 0')
+                error('Command "read" expected at least 1 argument, got 0')
 
             elif command:
                 parts = command.split()
@@ -112,19 +109,22 @@ class Game:
                     if len(parts) == 2:
                         self.acknow(parts[1])
                     else:
-                        warn(f'Command "help" expected at most 1 argument, '
-                             f'got {len(parts) - 1}')
+                        error(f'Command "help" expected at most 1 argument, '
+                              f'got {len(parts) - 1}')
 
                 elif parts[0] == 'read':
                     if len(parts) == 2:
                         self.inform(parts[1])
                     else:
-                        warn(f'Command "read" expected at most 1 argument, '
-                             f'got {len(parts) - 1}')
+                        error(f'Command "read" expected at most 1 argument, '
+                              f'got {len(parts) - 1}')
 
                 elif parts[0] in {'clear', 'exit'}:
-                    warn(f'Command "{parts}" expected no argument, '
-                         f'got {len(parts) - 1}')
+                    error(f'Command "{parts[0]}" expected no argument, '
+                          f'got {len(parts) - 1}')
+
+                else:
+                    error(f'Unknown command: "{parts[0]}"')
 
     def loop(self):
         try:

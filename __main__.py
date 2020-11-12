@@ -14,12 +14,12 @@ Options:
 from docopt import docopt
 
 from __init__ import __version__
-from game import Game
+from system import System
 
 
 def main():
     docopt(__doc__, version=f'Hackers {__version__}')
-    Game().loop()
+    System().loop()
 
 
 if __name__ == '__main__':

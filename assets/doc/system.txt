@@ -1,0 +1,11 @@
+> clear
+    Clear the terminal
+
+> exit
+    Exit the session
+
+> help
+    Show this help message
+
+> help <command>
+    Show help for a specific command

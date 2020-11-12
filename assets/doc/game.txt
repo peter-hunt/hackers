@@ -2,7 +2,7 @@
     Clear the terminal
 
 > exit
-    Exit the session
+    Exit this game
 
 > help
     Show this help message

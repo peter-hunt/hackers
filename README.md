@@ -22,11 +22,11 @@ pip install -r requirements.txt
 Run from python
 
 ```python
-from hackers import Game
-Game().loop()
+from hackers import System
+System().loop()
 ```
 
-Or from the terminal:
+Or straight from the terminal:
 
 ```bash
 python3 . # if in this directory
