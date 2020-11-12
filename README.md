@@ -22,7 +22,7 @@ pip install -r requirements.txt
 Run from python
 
 ```python
-from hackers import System
+from hackers.system import System
 System().loop()
 ```
 
