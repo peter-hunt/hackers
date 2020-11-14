@@ -24,7 +24,14 @@ class System:
         cmd_doc = defaultdict(list)
 
         for doc in docs:
-            cmd = doc.split('\n')[0].split()[1]
+            parts = doc.split('\n')[0].split()
+            cmd = parts[1]
+
+            for part in parts[2:]:
+                if part.startswith('<'):
+                    break
+                cmd = f'{cmd} {part}'
+
             cmd_doc[cmd].append(doc)
 
         self.cmd_doc = {}
@@ -33,17 +40,6 @@ class System:
 
         with open(join('assets', 'warnings.txt')) as file:
             self.warnings = file.read().split('\n\n')
-
-    def acknow(self, command=''):
-        if command == '':
-            acknow('Help on commands:')
-            acknow(f'{self.doc}\n')
-        else:
-            if command in self.cmd_doc:
-                acknow(f'Help on command "{command}":')
-                acknow(f'{self.cmd_doc[command]}\n')
-            else:
-                error(f'Unknown command: "{command}"')
 
     def warn(self):
         try:
@@ -74,6 +70,17 @@ class System:
 
         except KeyboardInterrupt:
             print(end='\x1b[0m')
+
+    def acknow(self, command=''):
+        if command == '':
+            acknow('Help on commands:')
+            acknow(self.doc)
+        else:
+            if command in self.cmd_doc:
+                acknow(f'Help on command "{command}":')
+                acknow(self.cmd_doc[command])
+            else:
+                error(f'Unknown command: "{command}"')
 
     def create(self):
         try:
@@ -106,6 +113,11 @@ class System:
         game = Game.load(name)
         if game is not None:
             game.run()
+        else:
+            error('Game not properly loaded.')
+
+    def info(self):
+        pass
 
     def loop(self):
         acknow(f'Hackers {__version__}')
@@ -138,11 +150,7 @@ class System:
                 parts = command.split()
 
                 if parts[0] == 'help':
-                    if len(parts) == 2:
-                        self.acknow(parts[1])
-                    else:
-                        error(f'Command "help" expected at most 1 argument, '
-                              f'got {len(parts) - 1}')
+                    self.acknow(' '.join(parts[1:]))
 
                 elif parts[0] in {'launch', 'run'}:
                     if len(parts) == 2:
@@ -151,7 +159,8 @@ class System:
                         error(f'Command "{parts[0]}" expected '
                               f'at most 1 argument, got {len(parts) - 1}')
 
-                elif parts[0] in {'clear', 'create', 'exit', 'list', 'ls'}:
+                elif parts[0] in {'clear', 'create', 'exit',
+                                  'information', 'list', 'ls'}:
                     error(f'Command "{parts[0]}" expected no argument, '
                           f'got {len(parts) - 1}')
 

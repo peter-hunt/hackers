@@ -1,3 +1,16 @@
 {
-  "player": {}
+  "npc": [
+    {
+      "id": 0,
+      "name": "Mark Smith"
+    },
+    {
+      "id": 1,
+      "name": "Joe Wood"
+    }
+  ],
+  "player": {
+    "deposits": 1000000.0,
+    "purse": 0.0
+  }
 }

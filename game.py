@@ -1,16 +1,17 @@
 from collections import defaultdict
 from json import dump, load
 from os.path import isdir, isfile, join
-from re import sub
+from re import match, sub
 from time import sleep, time
 
 from __init__ import __version__
-from func import clear, error, warn, acknow, input
+from func import clear, error, request, warn, acknow, input
+from npc import Npc
 from player import Player
 
 
 class Game:
-    def __init__(self, name, player=None):
+    def __init__(self, name, player=None, npc=None):
         # load the assets
         self.story = {}
         self.load_story('intro')
@@ -25,7 +26,14 @@ class Game:
         cmd_doc = defaultdict(list)
 
         for doc in docs:
-            cmd = doc.split('\n')[0].split()[1]
+            parts = doc.split('\n')[0].split()
+            cmd = parts[1]
+
+            for part in parts[2:]:
+                if part.startswith('<'):
+                    break
+                cmd = f'{cmd} {part}'
+
             cmd_doc[cmd].append(doc)
 
         self.cmd_doc = {}
@@ -40,33 +48,38 @@ class Game:
         else:
             self.player = player
 
+        if npc is None:
+            self.npc = []
+        else:
+            self.npc = npc
+
         self.save()
 
     def save(self):
         with open(join('saves', f'{self.name}.json'), 'w') as file:
-            dump(
-                {
-                    'player': self.player.dump()
-                },
-                file, indent=2, sort_keys=True)
+            dump({
+                'npc': self.npc.dump(),
+                'player': self.player.dump()
+            }, file, indent=2, sort_keys=True)
 
     @classmethod
     def load(cls, name):
         path = join('saves', f'{name}.json')
+
         if isfile(path):
             with open(path) as file:
-                game_data = load(file)
+                data = load(file)
 
-                if 'player' not in game_data:
-                    error('Key "player" is not found in game data.')
+                if not cls.is_valid(data):
                     return
 
-                player = Player.load(game_data['player'])
+                player = Player.load(data['player'])
+                npc = Npc.load(data['npc'])
 
-                return cls(name, player)
+                return cls(name=name, player=player, npc=npc)
 
         elif isdir(path):
-            error('Game JSON should be a file.')
+            error('Game JSON save should be a file.')
 
         else:
             error(f'File "{path}" is not found.')
@@ -76,14 +89,27 @@ class Game:
             self.story[name] = file.read()
 
     @staticmethod
-    def is_valid(data):
+    def is_valid(data, *, alert=True):
         if not isinstance(data, dict):
+            if alert:
+                error(f'Game data should be a dictionary, '
+                      f'not "{type(data).__name__}".')
             return False
 
         if 'player' not in data:
+            if alert:
+                error('Key "player" is not found in game data.')
             return False
 
-        if not Player.is_valid(data['player']):
+        if not Player.is_valid(data['player'], alert=alert):
+            return False
+
+        if 'npc' not in data:
+            if alert:
+                error('Key "npc" is not found in game data.')
+            return False
+
+        if not Npc.is_valid(data['npc'], alert=alert):
             return False
 
         return True
@@ -114,17 +140,17 @@ class Game:
         except KeyboardInterrupt:
             acknow()
 
-    def acknow(self, command=''):
-        if command == '':
+    def acknow(self, cmd=''):
+        if cmd == '':
             acknow('Help on commands:')
-            acknow(f'{self.doc}\n')
+            acknow(self.doc)
             acknow('Use "help <command>" for further documentation')
         else:
-            if command in self.cmd_doc:
-                acknow(f'Help on command "{command}":')
-                acknow(f'{self.cmd_doc[command]}\n')
+            if cmd in self.cmd_doc:
+                acknow(f'Help on command "{cmd}":')
+                acknow(self.cmd_doc[cmd])
             else:
-                error(f'Unknown command: "{command}"')
+                error(f'Unknown command: "{cmd}"')
 
     def loop(self):
         acknow(f'Hackers {__version__}')
@@ -144,8 +170,9 @@ class Game:
             elif command == 'help':
                 self.acknow()
 
-            elif command == 'read':
-                error('Command "read" expected at least 1 argument, got 0')
+            elif command in {'player', 'read'}:
+                error(f'Command "{command}" expected '
+                      f'at least 1 argument, got 0')
 
             elif command == 'save':
                 self.save()
@@ -155,11 +182,105 @@ class Game:
                 parts = command.split()
 
                 if parts[0] == 'help':
-                    if len(parts) == 2:
-                        self.acknow(parts[1])
+                    self.acknow(' '.join(parts[1:]))
+
+                elif parts[0] == 'player':
+                    if parts[1] == 'deposit':
+                        if len(parts) != 3:
+                            error(f'Command "player deposit" expected '
+                                  f'1 argument, got {len(parts) - 2}')
+                            continue
+
+                        if parts[2] == 'all':
+                            amount = self.player.purse
+                        elif parts[2] == 'half':
+                            amount = round(self.player.purse / 2, 2)
+                        elif match(r'^\d+('
+                                   r'(\.\d{0,2})|((\.\d{0,5})?k)'
+                                   r'|((\.\d{0,8})?m)|((\.\d{0,11})?b)'
+                                   r'|((\.\d{0,14})?t)'
+                                   r')?$', parts[2]):
+                            if parts[2][-1] in {'k', 'm', 'b', 't'}:
+                                amount = float(parts[2][:-1]) * {
+                                    'k': 1_000,
+                                    'm': 1_000_000,
+                                    'b': 1_000_000_000,
+                                    't': 1_000_000_000_000,
+                                }[parts[2][-1]]
+                            else:
+                                amount = float(parts[2])
+                        else:
+                            error(f'Invalid amount: {parts[2]}')
+                            continue
+
+                        if amount > self.player.purse:
+                            warn('Not enough money in your purse.')
+                            continue
+
+                        self.player.purse -= amount
+                        self.player.deposits += amount
+
+                        request(f'Succesfully deposited {amount:,.2f}$!')
+                        acknow(f'Purse {self.player.purse:,.2f}$')
+                        acknow(f'Deposits {self.player.deposits:,.2f}$')
+
+                    elif parts[1] == 'info':
+                        if len(parts) != 2:
+                            error(f'Command "player info" expected '
+                                  f'no argument, got {len(parts) - 2}')
+                            continue
+
+                        self.player.info()
+
+                    elif parts[1] == 'information':
+                        if len(parts) != 2:
+                            error(f'Command "player information" expected '
+                                  f'no argument, got {len(parts) - 2}')
+                            continue
+
+                        self.player.information()
+
+                    elif parts[1] == 'withdraw':
+                        if len(parts) != 3:
+                            error(f'Command "player withdraw" expected '
+                                  f'1 argument, got {len(parts) - 2}')
+                            continue
+
+                        if parts[2] == 'all':
+                            amount = self.player.deposits
+                        elif parts[2] == 'half':
+                            amount = round(self.player.deposits / 2, 2)
+                        elif match(r'^\d+('
+                                   r'(\.\d{0,2})|((\.\d{0,5})?k)'
+                                   r'|((\.\d{0,8})?m)|((\.\d{0,11})?b)'
+                                   r'|((\.\d{0,14})?t)'
+                                   r')?$', parts[2]):
+                            if parts[2][-1] in {'k', 'm', 'b', 't'}:
+                                amount = float(parts[2][:-1]) * {
+                                    'k': 1_000,
+                                    'm': 1_000_000,
+                                    'b': 1_000_000_000,
+                                    't': 1_000_000_000_000,
+                                }[parts[2][-1]]
+                            else:
+                                amount = float(parts[2])
+                        else:
+                            error(f'Invalid amount: {parts[2]}')
+                            continue
+
+                        if amount > self.player.deposits:
+                            warn('Not enough money in your bank account.')
+                            continue
+
+                        self.player.deposits -= amount
+                        self.player.purse += amount
+
+                        request(f'Succesfully withdrew {amount:,.2f}$!')
+                        acknow(f'Purse {self.player.purse:,.2f}$')
+                        acknow(f'Deposits {self.player.deposits:,.2f}$')
+
                     else:
-                        error(f'Command "help" expected at most 1 argument, '
-                              f'got {len(parts) - 1}')
+                        error(f'Unknown player command: "{parts[1]}"')
 
                 elif parts[0] == 'read':
                     if len(parts) == 2:

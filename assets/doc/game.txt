@@ -5,10 +5,31 @@
     Exit this game.
 
 > help
-    Show this help message.
+    List all available commands.
 
 > help <command>
     Show help for a specific command.
+
+> info
+    Show brief information about the game's current state.
+
+> information
+    Show detailed information about the game's current state.
+
+> player <command>
+    Use player commands.
+
+> player deposit [all | half | <amount>]
+    Deposit money from purse to the bank.
+
+> player info
+    Show brief information about the player's current state.
+
+> player information
+    Show detailed information about the player's current state.
+
+> player withdraw [all | half | <amount>]
+    Withdraw money from the bank to purse.
 
 > read <story>
     Read a specific story of the game.
