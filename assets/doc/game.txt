@@ -1,16 +1,19 @@
 > clear
-    Clear the terminal
+    Clear the terminal.
 
 > exit
-    Exit this game
+    Exit this game.
 
 > help
-    Show this help message
+    Show this help message.
 
 > help <command>
-    Show help for a specific command
+    Show help for a specific command.
 
 > read <story>
     Read a specific story of the game.
     Stories available:
       intro
+
+> save
+    Save the game.

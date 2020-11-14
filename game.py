@@ -1,25 +1,26 @@
 from collections import defaultdict
-from time import sleep, time
-from os.path import join
+from json import dump, load
+from os.path import isdir, isfile, join
 from re import sub
+from time import sleep, time
 
 from __init__ import __version__
-from func import clear, error, warn, acknow
+from func import clear, error, warn, acknow, input
+from player import Player
 
 
 class Game:
-    def __init__(self, playername, assets='assets'):
+    def __init__(self, name, player=None):
         # load the assets
-        self.assets = assets
         self.story = {}
         self.load_story('intro')
 
-        with open(join(self.assets, 'doc', 'game.txt')) as file:
+        with open(join('assets', 'doc', 'game.txt')) as file:
             doc = file.read()
 
         docs = sorted(doc.split('\n\n'),
                       key=lambda part: part.split('\n')[0])
-        self.doc = '\n\n'.join(docs)
+        self.doc = '\n'.join(doc.split('\n')[0] for doc in docs)
 
         cmd_doc = defaultdict(list)
 
@@ -32,47 +33,92 @@ class Game:
             self.cmd_doc[cmd] = '\n\n'.join(cmd_doc[cmd])
 
         # initiate the game
-        self.playername = playername
+        self.name = name
+
+        if player is None:
+            self.player = Player()
+        else:
+            self.player = player
 
         self.save()
 
     def save(self):
-        pass
+        with open(join('saves', f'{self.name}.json'), 'w') as file:
+            dump(
+                {
+                    'player': self.player.dump()
+                },
+                file, indent=2, sort_keys=True)
+
+    @classmethod
+    def load(cls, name):
+        path = join('saves', f'{name}.json')
+        if isfile(path):
+            with open(path) as file:
+                game_data = load(file)
+
+                if 'player' not in game_data:
+                    error('Key "player" is not found in game data.')
+                    return
+
+                player = Player.load(game_data['player'])
+
+                return cls(name, player)
+
+        elif isdir(path):
+            error('Game JSON should be a file.')
+
+        else:
+            error(f'File "{path}" is not found.')
 
     def load_story(self, name):
-        with open(join(self.assets, 'story', f'{name}.txt')) as file:
+        with open(join('assets', 'story', f'{name}.txt')) as file:
             self.story[name] = file.read()
+
+    @staticmethod
+    def is_valid(data):
+        if not isinstance(data, dict):
+            return False
+
+        if 'player' not in data:
+            return False
+
+        if not Player.is_valid(data['player']):
+            return False
+
+        return True
 
     def inform(self, name):
         if name not in self.story:
             error(f'Unknown story: "{name}"')
             return
 
-        print(f'===== {name.capitalize()} =====')
-        print('Use Ctrl+C to skip.')
+        acknow(f'===== {name.capitalize()} =====')
+        acknow('Use Ctrl+C to skip.')
 
         try:
             for ipara, para in enumerate(self.story[name].split('\n\n')):
                 sleep(1)
                 if ipara > 0:
-                    for i in range(2):
+                    for _ in range(2):
                         start = time()
-                        print()
+                        acknow()
                         sleep(max(0, 0.25 - time() + start))
                 for char in para:
                     start = time()
-                    print(end=char, flush=True)
+                    acknow(end=char, flush=True)
                     sleep(max(0, 0.05 - time() + start))
 
             sleep(1)
 
         except KeyboardInterrupt:
-            print()
+            acknow()
 
     def acknow(self, command=''):
         if command == '':
             acknow('Help on commands:')
             acknow(f'{self.doc}\n')
+            acknow('Use "help <command>" for further documentation')
         else:
             if command in self.cmd_doc:
                 acknow(f'Help on command "{command}":')
@@ -80,13 +126,12 @@ class Game:
             else:
                 error(f'Unknown command: "{command}"')
 
-    def _loop(self):
+    def loop(self):
         acknow(f'Hackers {__version__}')
         acknow('Type "help" for more information.')
 
         while True:
-            command = input('> \x1b[1m')
-            print(end='\x1b[0m')
+            command = input('>> ')
 
             command = sub(r'\s+', command, r' ').strip()
 
@@ -101,6 +146,10 @@ class Game:
 
             elif command == 'read':
                 error('Command "read" expected at least 1 argument, got 0')
+
+            elif command == 'save':
+                self.save()
+                acknow('Saved!')
 
             elif command:
                 parts = command.split()
@@ -119,15 +168,18 @@ class Game:
                         error(f'Command "read" expected at most 1 argument, '
                               f'got {len(parts) - 1}')
 
-                elif parts[0] in {'clear', 'exit'}:
+                elif parts[0] in {'clear', 'exit', 'save'}:
                     error(f'Command "{parts[0]}" expected no argument, '
                           f'got {len(parts) - 1}')
 
                 else:
                     error(f'Unknown command: "{parts[0]}"')
 
-    def loop(self):
+    def run(self):
         try:
-            self._loop()
+            self.loop()
         except KeyboardInterrupt:
             print('\x1b[0m')
+        finally:
+            self.save()
+            acknow('Saved!')

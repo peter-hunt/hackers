@@ -1,11 +1,26 @@
 > clear
-    Clear the terminal
+    Clear the terminal.
+
+> create
+    Create a new game.
 
 > exit
-    Exit the session
+    Exit the session.
 
 > help
-    Show this help message
+    List all available commands.
 
 > help <command>
-    Show help for a specific command
+    Show help for a specific command.
+
+> launch <game>
+    Launch a saved game.
+
+> list
+    List all saved games.
+
+> ls
+    List all saved games.
+
+> run <game>
+    Launch a saved game.

@@ -19,7 +19,7 @@ from system import System
 
 def main():
     docopt(__doc__, version=f'Hackers {__version__}')
-    System().loop()
+    System().run()
 
 
 if __name__ == '__main__':

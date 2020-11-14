@@ -23,7 +23,7 @@ Run from python
 
 ```python
 from hackers.system import System
-System().loop()
+System().run()
 ```
 
 Or straight from the terminal:
