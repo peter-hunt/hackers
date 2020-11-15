@@ -32,6 +32,10 @@ Or straight from the terminal:
 python3 . # if in this directory
 ```
 
+## Known Issues
+Here's a list of known issues in the project:
+* Colored printing breaks from time to time in VSCode Terminal (Windows 10)
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 

@@ -1,19 +1,20 @@
 from collections import defaultdict
 from json import load
 from json.decoder import JSONDecodeError
-from os import walk
+from os import remove, walk
 from os.path import isdir, isfile, join
 from re import match, sub
 from time import sleep, time
 
 from __init__ import __version__
-from func import clear, error, request, warn, acknow, input, strict_input
+from func import (
+    clear, error, request, warn, system, input, decide, strict_input,
+)
 from game import Game
 
 
 class System:
     def __init__(self):
-        # load the assets
         with open(join('assets', 'doc', 'system.txt')) as file:
             doc = file.read()
 
@@ -53,7 +54,7 @@ class System:
                         sleep(max(0, 0.1 - time() + start))
 
                 else:
-                    sleep(0.5)
+                    sleep(0.2)
 
                     if ipara > 1:
                         for _ in range(2):
@@ -73,12 +74,12 @@ class System:
 
     def acknow(self, command=''):
         if command == '':
-            acknow('Help on commands:')
-            acknow(self.doc)
+            system('Help on commands:')
+            system(self.doc)
         else:
             if command in self.cmd_doc:
-                acknow(f'Help on command "{command}":')
-                acknow(self.cmd_doc[command])
+                system(f'Help on command "{command}":')
+                system(self.cmd_doc[command])
             else:
                 error(f'Unknown command: "{command}"')
 
@@ -105,7 +106,7 @@ class System:
                 continue
 
             if Game.is_valid(data):
-                acknow(f'  {name}')
+                system(f'  {name}')
             else:
                 error(f'  {name} (invalid game data)')
 
@@ -116,12 +117,29 @@ class System:
         else:
             error('Game not properly loaded.')
 
+    def delete(self, name):
+        path = join('saves', f'{name}.json')
+
+        if isfile(path):
+            warn('Are you sure to delete this file?')
+            warn('This action is irreversible!')
+
+            if decide():
+                remove(path)
+                system(f'Successfully deleted "{name}"!')
+
+        elif isdir(path):
+            error('Game data should be a file.')
+
+        else:
+            error(f'File "{path}" is not found.')
+
     def info(self):
         pass
 
     def loop(self):
-        acknow(f'Hackers {__version__}')
-        acknow('Type "help" for more information.')
+        system(f'Hackers {__version__}')
+        system('Type "help" for more information.')
 
         while True:
             command = input('> ')
@@ -143,14 +161,27 @@ class System:
             elif command in {'list', 'ls'}:
                 self.list()
 
-            elif command in {'launch', 'run'}:
+            elif command in {'del', 'delete', 'launch', 'rm', 'run'}:
                 error(f'Command "{command}" expected 1 argument, got 0')
+
+            elif match(r'^\S+\.(exe|sh)$', command):
+                self.launch('.'.join(command.split('.')[:-1]))
+
+            elif match(r'^\.[/\\]\S+$', command):
+                self.launch(command[2:])
 
             elif command:
                 parts = command.split()
 
                 if parts[0] == 'help':
                     self.acknow(' '.join(parts[1:]))
+
+                elif parts[0] in {'del', 'delete', 'rm'}:
+                    if len(parts) == 2:
+                        self.delete(parts[1])
+                    else:
+                        error(f'Command "{parts[0]}" expected '
+                              f'at most 1 argument, got {len(parts) - 1}')
 
                 elif parts[0] in {'launch', 'run'}:
                     if len(parts) == 2:

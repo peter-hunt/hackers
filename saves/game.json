@@ -1,0 +1,21 @@
+{
+  "npc": [],
+  "player": {
+    "attr": {
+      "charisma": 107,
+      "constitution": 100,
+      "defense": 124,
+      "health": 152,
+      "intelligence": 100,
+      "luck": 132,
+      "regeneration": 178,
+      "speed": 201,
+      "strength": 100,
+      "willpower": 100
+    },
+    "deposits": 500.0,
+    "health": 58,
+    "hunger": 75,
+    "purse": 500.0
+  }
+}

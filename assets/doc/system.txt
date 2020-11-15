@@ -4,6 +4,12 @@
 > create
     Create a new game.
 
+> del <game>
+    Delete a saved game.
+
+> delete <game>
+    Delete a saved game.
+
 > exit
     Exit the session.
 
@@ -21,6 +27,9 @@
 
 > ls
     List all saved games.
+
+> rm <game>
+    Delete a saved game.
 
 > run <game>
     Launch a saved game.
